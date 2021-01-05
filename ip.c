@@ -106,12 +106,21 @@ int plugin_process_file(const char *fname,
                         size_t out_buff_len)
 {
     FILE *current_file;
+    //printf("-- %s\n", fname);
+    
+    //printf("		%s\n", fname);
+    //printf("11++\n");
     current_file = fopen(fname, "r");
+    //printf("11++\n");
+    //printf("--- %p\n", current_file);
+    //printf("11++\n");
     if (current_file == NULL)
     {
         fclose(current_file);
+        
         return -1;
     }
+    
     //printf ("--%s\n", fname);
 
     //printf("%s\n", in_opts[0]->flag);
@@ -152,6 +161,7 @@ int plugin_process_file(const char *fname,
         printf("Error: invalid syntax of IP address\n");
         strcpy(out_buff, "invalid syntax");
         //out_buff = "invalid syntax";
+        
         return -1;
     }
 
@@ -166,6 +176,7 @@ int plugin_process_file(const char *fname,
         if (i > 400)
         {
             fclose(current_file);
+            
             return -1;
         }
         //printf("%s\n", fname);

@@ -9,21 +9,24 @@
 #include <limits.h>
 #include <errno.h>
 #include "plugin_api.h"
+#include <inttypes.h>
+#include <limits.h>
 #define _XOPEN_SOURCE 500
 #define _DEFAULT_SOURCE
 
-#include <inttypes.h>
+
 
 #define no_argument            0
 #define required_argument      1
 #define optional_argument      2
 
 int option_count = 0;
-char *Version = "0.6";
+char *Version = "0.88";
 struct option *long_options;
 int inversion_flag = 0;
 int condition_flag = 0;
 char *condition;
+FILE *log;
 
 int founds = 0;
 int (*get_info)(struct plugin_info*);
@@ -53,6 +56,12 @@ int getopt_long(int argc,
                 const char *optstring,
                 const struct option *longopts,
                 int *longindex);
+
+int log_print(char *message)
+{
+	fprintf(log, "%s\n", message);
+	return 0;
+}
 
 
 int option_append(struct option *list, char *namex, int has_argx, int *flagx, int valx)
@@ -84,11 +93,12 @@ int plugin_append(struct plugin *plugins, int pos, char *s)
 	char *ss = malloc(sizeof(2 + strlen(s)));
 	strncat(ss, "./", 2);
 	strncat(ss, s, strlen(s));
+	//printf("+++ %s\n", ss);
     plugins[pos].plugin_file = dlopen(ss, RTLD_LAZY||RTLD_GLOBAL);
     if (plugins[pos].plugin_file == NULL)
     {
         printf("Error: could not open plugin\n");
-        printf("+11+\n");
+        //printf("+11+\n");
         exit(1);
     }
     else 
@@ -171,6 +181,7 @@ int show_help(int x)
 int show_version(int x)
 {
     printf("Version %s\n", Version);
+    log_print("-v found, showing version");
     return 0;
 }
 
@@ -179,15 +190,15 @@ int show_version(int x)
 
 //TODO search dir
 
-#include <limits.h>
+
 
 /* List the files in "dir_name". */
 
 int search (const char * dir_name, struct plugin *p, int plugin_count)
 {
-    sleep(1);
-    printf("Searching....\n");
-    sleep(1);
+    //sleep(1);
+    //printf("Searching....\n");
+    //sleep(1);
     int xxx;
 
     DIR * d;
@@ -198,6 +209,8 @@ int search (const char * dir_name, struct plugin *p, int plugin_count)
     if (d == NULL)
     {
         printf("No path to start from\n");
+        log_print("No path");
+    	
         show_help(0);
         return 234;
     }
@@ -211,6 +224,7 @@ int search (const char * dir_name, struct plugin *p, int plugin_count)
 
     while (1) {
         struct dirent * entry;
+        
         const char * d_name;
 
         /* "Readdir" gets subsequent entries from "d". */
@@ -221,6 +235,7 @@ int search (const char * dir_name, struct plugin *p, int plugin_count)
             break;
         }
         d_name = entry->d_name;
+        //printf ("%s/%s\n", dir_name, d_name);
         /* Print the name of the file and directory. */
         //printf ("%s/%s\n", dir_name, d_name);
 
@@ -246,22 +261,39 @@ int search (const char * dir_name, struct plugin *p, int plugin_count)
 
         //fl_veritas = 1;
 
-        if (! (entry->d_type & 4))
+        if (! (entry->d_type & DT_DIR))
         {
 	        //printf ("%s/%s\n", dir_name, d_name);
             //printf ("--%s\n", d_name);
             char *gh;
-
-            gh = malloc(sizeof(char) * (strlen(dir_name) + strlen(d_name) + 1));
-
-            strncat(gh, dir_name, 100);
+	
+            //gh = malloc(sizeof(char) * (strlen(dir_name) + strlen(d_name) + 10));
+            gh = malloc(sizeof(char) * 355);
+            
+		//printf("11  %s\n", gh);
+		/*
+            strncat(gh, dir_name, strlen(dir_name));
             strncat(gh, "/", 1);
             strncat(gh, d_name, 100);
+            */
             //printf("%s\n", gh);
-
-
+/*
+		//sprintf(gh, "%s/%s", dir_name, d_name);
+		snprintf(gh, "%s", dir_name, 123);
+		//snprintf(gh, "/", 123);
+		sprintf(gh, "%s", d_name, 123);
+		//printf("11  %s\n", gh);
+		//printf("== %s\n", dir_name);
+	*/
+		snprintf(gh, 123, "%s/%s", dir_name, d_name);	
+		log_print("Opening file");
+		log_print(gh);
+    
+    
+		//printf("== %s\n", gh);
             if (strstr(gh, ".txt") != NULL)
             {
+            //printf ("%s/%s\n", dir_name, d_name);
                 //printf("not 0\n");
 
                 for (int i = 0; i < plugin_count; i++)
@@ -269,6 +301,7 @@ int search (const char * dir_name, struct plugin *p, int plugin_count)
                     if (p[i].found_option == 1)
                     {
                         //printf("111\n");
+                        //printf("11++\n");
                         //printf("%s\n", p[i].plugin_info->plugin_name);
                         //printf("%s\n", p[i].plugin_info->sup_opts[0].opt.name);
                         xxx = p[i].plugin_get_main_function(gh,
@@ -276,6 +309,7 @@ int search (const char * dir_name, struct plugin *p, int plugin_count)
                                                             p[i].plugin_info->sup_opts_len,
                                                             buff,
                                                             buff_size);
+                        
                         //printf("111\n");
                         if (strcmp(condition, "AND") == 0)
                         {
@@ -304,22 +338,26 @@ int search (const char * dir_name, struct plugin *p, int plugin_count)
                 if ((fl_veritas == 1) && (inversion_flag == 0))
                 {
                     printf("Found in file: \t%s\n", gh);
+                    log_print("Found");
+    
                     founds++;
                 }
 
                 if ((fl_veritas == 0) && (inversion_flag != 0))
                 {
                     printf("Found in file: \t%s\n", gh);
+                    log_print("Found");
                     founds++;
                 }
                 //printf("%d\n", strlen(buff));
                 if (strlen(buff) != 0)
                 {
                     //printf("Error: error with plugin\n");
-                    exit(1);
+                    //printf("%s\n", buff);
+                    //exit(1);
                 }
             }
-            //free(gh);
+            free(gh);
 
             //FILE *f;
             //f = fopen(strcat(strcat(dir_name, "/"), d_name), "r");
@@ -333,7 +371,7 @@ int search (const char * dir_name, struct plugin *p, int plugin_count)
 
 
 
-        if (entry->d_type & 4) {
+        if (entry->d_type & DT_DIR) {
 
             /* Check that the directory is not "d" or d's parent. */
 
@@ -346,7 +384,7 @@ int search (const char * dir_name, struct plugin *p, int plugin_count)
                                         "%s/%s", dir_name, d_name);
                 //printf ("%s\n", path);
                 if (path_length >= PATH_MAX) {
-                    fprintf (stderr, "Path length has got too long.\n");
+                    fprintf (stdout, "Path length has got too long.\n");
                     exit (EXIT_FAILURE);
                 }
                 /* Recursively call "list_dir" with the new path. */
@@ -371,7 +409,8 @@ int main(int argc, char* argv[]) {
     //int *option_flags = malloc(sizeof(int) * 12);
     char *plugins_path = "./";
     int cond; // AND = 0, OR = 1
-    char *log_path = "./";
+    char *log_path = malloc(sizeof(char) * 100);
+    log_path = ".";
     //condition = malloc(sizeof(char) * 10);
     //TODO create log file
 	//printf("Startxxx\n");
@@ -382,7 +421,7 @@ int main(int argc, char* argv[]) {
     option_append(long_options, "logpath", required_argument, NULL, 'l');
     option_append(long_options, "condition", required_argument, NULL, 'C');
     
-    //printf("111\n");
+    
 
     
     for (int i = 0; i < 6; i++)
@@ -422,7 +461,7 @@ int main(int argc, char* argv[]) {
             case 'l': {
                 if (optarg) {
                     log_path = optarg;
-                    printf("%s\n", log_path);
+                    //printf("%s\n", log_path);
                 } else {
                     printf("Error: option -l required argument\n");
                     exit(1);
@@ -467,6 +506,25 @@ int main(int argc, char* argv[]) {
     }
 
 
+
+
+char *lg = malloc(sizeof(char) * 100);
+strncat(lg, log_path, 100);
+
+	strncat(lg, "/log.txt", 9);
+	//snprintf(log_path, 9,"/log.txt");
+
+	log = fopen(lg, "w");
+	log_print("Start...");
+	if (inversion_flag != 0)
+	{
+		log_print("Inversion: On");
+	}
+	
+	
+
+
+
     option_index = -1;
     optind = 0;
     //printf("123123123\n");
@@ -480,6 +538,8 @@ int main(int argc, char* argv[]) {
     if (plugins_directory == NULL)
     {
         printf("Error: could not open directory with plugins\n");
+        log_print("Error: could not open directory with plugins");
+        fclose(log);
         exit(1);
     }
     //printf("C = %s\n", condition);
@@ -499,13 +559,15 @@ int main(int argc, char* argv[]) {
             //printf("%s\n", file_current->d_name);
             //printf("1\n");
             plugin_append(plugins, plugins_count, file_current->d_name);
+            log_print("Found plugin");
+            log_print("Plugin added");
             plugins_count++;
         }
         //printf("**  %p\n", file_current);
     };
     printf("Found %d plugin(s)\n", plugins_count);
     //printf("---------------------\n");
-
+	log_print("End working with plugins, start...");
 
 
 
@@ -562,12 +624,16 @@ int main(int argc, char* argv[]) {
             case ':':
             {
                 printf("Error: missing argument\n");
+                log_print("Error: missing argument");
+                fclose(log);
                 exit(1);
             }
 
             case 'h':
             {
                 show_help(0);
+                log_print("-h found, showing help");
+                //fclose(log);
                 break;
             }
             case 'v':
@@ -594,6 +660,8 @@ int main(int argc, char* argv[]) {
 
             case 0:
             {
+            	log_print("Found plugin option");
+                //fclose(log);
                 //printf("HERE\n");
                 //printf("%d\n", option_index);
                 //option_index = 1;
@@ -620,6 +688,8 @@ int main(int argc, char* argv[]) {
                         {
 
                             printf("Error: missing argument\n");
+                            log_print("Error: missing argument");
+                		fclose(log);
                             exit(1);
                         }
                         else
@@ -636,6 +706,8 @@ int main(int argc, char* argv[]) {
                 if (its_ok == 0)
                 {
                     printf("Error: unknown option\n");
+                    log_print("Error: unknown option");
+                	fclose(log);
                     exit(1);
                 }
                 //option_index = -1;
@@ -645,6 +717,8 @@ int main(int argc, char* argv[]) {
                 if (flag_plugin_option_found == 0)
                 {
                     printf("Error: plugins options not found\n");
+                    log_print("Error: plugin option not found");
+                	fclose(log);
                     exit(1);
                 }
 
@@ -652,12 +726,16 @@ int main(int argc, char* argv[]) {
             case '?':
             {
                 printf("Error: unknown option\n");
+                log_print("Error: unknown option");
+                	fclose(log);
                 //break;
                 exit(1);
                 //printf("%s\n", optarg);
             }
             default: {
                 printf("Error: unknown option\n");
+                log_print("Error: unknown option");
+                	fclose(log);
                 //break;
                 exit(1);
                 break;
@@ -673,8 +751,14 @@ int main(int argc, char* argv[]) {
 
     //if ((argc == 1) || ())
     //printf("!!!\n");
+    log_print("Searching...");
+    log_print("\n");
+    
     int search_checker = search(argv[argc - 1], plugins, plugins_count);
+    
     printf("Found:\t%d\n", founds);
+    log_print("ENDED");
+    fclose(log);
     //printf("&&&&&&%d\n", search_checker);
     if (search_checker == 234)
     {
