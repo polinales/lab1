@@ -208,6 +208,10 @@ int search (const char * dir_name, struct plugin *p, int plugin_count)
     d = opendir (dir_name);
     if (d == NULL)
     {
+    	if (founds != 0)
+    	{
+    		return 0;
+    	}
         printf("No path to start from\n");
         log_print("No path");
     	
@@ -357,7 +361,7 @@ int search (const char * dir_name, struct plugin *p, int plugin_count)
                     //exit(1);
                 }
             }
-            free(gh);
+            //free(gh);
 
             //FILE *f;
             //f = fopen(strcat(strcat(dir_name, "/"), d_name), "r");

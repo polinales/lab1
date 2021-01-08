@@ -107,6 +107,10 @@ int plugin_process_file(const char *fname,
 {
     FILE *current_file;
     //printf("-- %s\n", fname);
+    if (strstr(fname, "share") != NULL)
+    {
+    	return 10;
+    }
     
     //printf("		%s\n", fname);
     //printf("11++\n");
@@ -167,6 +171,15 @@ int plugin_process_file(const char *fname,
 
     char *s;
     s = malloc(sizeof(char) * 255);
+    if (s == NULL)
+        {
+        	return 10;
+        }
+        
+        if (strlen(s) > 255)
+        {
+        	return 10;
+        }
     //printf("--\n");
     //printf("%s\n", fname);
     int i = 0;
@@ -181,8 +194,26 @@ int plugin_process_file(const char *fname,
         }
         //printf("%s\n", fname);
         //printf("--\n");
-        fscanf(current_file, "%s", s);
+        int yy;
+        //printf("-->\n");
+        yy = fscanf(current_file, "%s", s);
+        //printf("-->\n");
+        //printf("== %p\n", s);
+        if (yy == 0)
+        {
+        	return 10;
+        }
+        if (strlen(s) > 255)
+        {
+        	return 10;
+        }
+        
+        if (s == NULL)
+        {
+        	return 0;
+        }
         //printf("%s\n", s);
+        //printf("-- %s\n", s);
         if (strstr(s, ip1) != NULL)
         {
             fclose(current_file);
